@@ -59,7 +59,7 @@ async fn main() {
         .layer(AddExtensionLayer::new(client))
         .layer(AddExtensionLayer::new(Arc::new(entries)));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 4000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     println!("reverse proxy listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
