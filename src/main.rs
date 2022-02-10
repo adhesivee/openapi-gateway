@@ -8,7 +8,7 @@ use crate::gateway::{OpenApiEntry, Route};
 use crate::ui::{SwaggerUiConfig, Url};
 use axum::body::{Full, HttpBody};
 use axum::http::header::CONTENT_TYPE;
-use axum::http::{Method, StatusCode};
+use axum::http::{HeaderValue, Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{any, get_service, MethodRouter};
 use axum::{extract::Extension, http::{uri::Uri, Request, Response}, routing::get, AddExtensionLayer, Router, Json};
@@ -146,7 +146,7 @@ async fn handler(
         println!("Forward to {uri}");
 
         *req.uri_mut() = Uri::try_from(uri).unwrap();
-
+        req.headers_mut().insert("host", HeaderValue::from_str(entry.config.uri().host().unwrap()).unwrap());
         client.request(req).await.unwrap()
     } else {
         Response::builder()
