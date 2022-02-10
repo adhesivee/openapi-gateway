@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use axum::http::Uri;
 use toml::de::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    pub openapi_urls: Vec<OpenApiUrl>,
+    pub openapi_urls: Vec<OpenApiConfig>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct OpenApiUrl {
+pub struct OpenApiConfig {
     pub name: String,
     pub url: String,
 }
@@ -19,4 +20,10 @@ pub fn read_from_file<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
             .expect("{path} not found")
             .as_str(),
     )
+}
+
+impl OpenApiConfig {
+    pub fn uri(&self) -> Uri {
+        Uri::try_from(&self.url).unwrap()
+    }
 }

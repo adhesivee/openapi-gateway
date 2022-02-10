@@ -1,11 +1,11 @@
 pub mod openapi;
 
 use axum::http::Uri;
+use crate::config::OpenApiConfig;
 
 #[derive(Debug)]
 pub struct OpenApiEntry {
-    pub uri: Uri,
-    pub name: String,
+    pub config: OpenApiConfig,
     pub routes: Vec<Route>,
 }
 
