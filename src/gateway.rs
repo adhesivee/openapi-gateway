@@ -1,7 +1,7 @@
 pub mod openapi;
 
-use axum::http::Uri;
 use crate::config::OpenApiConfig;
+use axum::http::Uri;
 
 #[derive(Debug)]
 pub struct OpenApiEntry {

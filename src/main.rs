@@ -6,21 +6,22 @@ use crate::config::read_from_file;
 use crate::gateway::openapi::build_from_json;
 use crate::gateway::{OpenApiEntry, Route};
 use crate::ui::{SwaggerUiConfig, Url};
+use axum::body::{Full, HttpBody};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{Method, StatusCode};
 use axum::response::IntoResponse;
-use axum::{
-    extract::Extension,
-    http::{uri::Uri, Request, Response},
-    routing::get,
-    AddExtensionLayer, Router,
-};
+use axum::routing::{any, get_service, MethodRouter};
+use axum::{extract::Extension, http::{uri::Uri, Request, Response}, routing::get, AddExtensionLayer, Router, Json};
 use hyper::{client::HttpConnector, Body};
 use hyper_rustls::HttpsConnector;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::convert::Infallible;
+use std::future::Future;
 use std::sync::Arc;
 use std::{convert::TryFrom, net::SocketAddr};
+use tower::util::AndThen;
+use tower::{ServiceBuilder, ServiceExt};
 
 type Client = hyper::client::Client<HttpsConnector<HttpConnector>, Body>;
 
@@ -47,21 +48,12 @@ async fn main() {
 
         let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-        entries.push(build_from_json(
-            config,
-            &bytes,
-        ));
+        entries.push(build_from_json(config, &bytes));
     }
 
     let app = Router::new()
-        .route(
-            "/*key",
-            get(handler)
-                .post(handler)
-                .put(handler)
-                .options(handler)
-                .head(handler),
-        )
+        .route("/docs/swagger-config.json", get(swagger_conf_handler))
+        .fallback(any(handler))
         .layer(AddExtensionLayer::new(client))
         .layer(AddExtensionLayer::new(Arc::new(entries)));
 
@@ -71,6 +63,24 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn swagger_conf_handler(
+    Extension(entries): Extension<Arc<Vec<OpenApiEntry>>>,
+) -> (StatusCode, Json<SwaggerUiConfig>) {
+    // @TODO: These files should be proxied
+
+    let config = SwaggerUiConfig {
+        urls: entries
+            .iter()
+            .map(|entry| Url {
+                name: entry.config.name.clone(),
+                url: entry.config.url.clone(),
+            })
+            .collect(),
+    };
+
+    (StatusCode::OK, Json(config))
 }
 
 async fn handler(
@@ -106,22 +116,8 @@ async fn handler(
             builder = builder.header(CONTENT_TYPE, "application/json");
         }
 
-        // @TODO: These files should be proxied
-        let bytes = if file == &"swagger-config.json" {
-            let config = SwaggerUiConfig {
-                urls: entries
-                    .iter()
-                    .map(|entry| Url {
-                        name: entry.config.name.clone(),
-                        url: entry.config.url.clone(),
-                    })
-                    .collect(),
-            };
 
-            serde_json::to_vec(&config).unwrap()
-        } else {
-            std::fs::read(format!("swagger-ui/{}", file)).unwrap()
-        };
+        let bytes = std::fs::read(format!("swagger-ui/{}", file)).unwrap();
         return builder.body(Body::from(bytes)).unwrap();
     }
 
