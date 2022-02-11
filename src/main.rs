@@ -2,6 +2,7 @@ mod config;
 mod gateway;
 mod ui;
 mod web;
+mod openapi;
 
 use crate::config::Config;
 use crate::gateway::openapi::parse_from_json;
