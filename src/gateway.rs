@@ -1,10 +1,9 @@
 pub mod openapi;
 
 use crate::config::OpenApiConfig;
-use axum::http::Uri;
 
 #[derive(Debug)]
-pub struct OpenApiEntry {
+pub struct GatewayEntry {
     pub config: OpenApiConfig,
     pub openapi_file: Vec<u8>,
     pub routes: Vec<Route>,
