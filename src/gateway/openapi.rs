@@ -21,7 +21,11 @@ pub fn parse_from_json(config: OpenApiConfig, buffer: &[u8]) -> GatewayEntry {
 
             let routes = collect_routes(&json, server_prefix);
 
-            println!("{:?}", &routes);
+            routes.iter()
+                .for_each(|route| {
+                    tracing::info!("Register route: {} {}", route.method, route.uri_regex.as_str())
+                });
+
             routes
         })
         .flatten()

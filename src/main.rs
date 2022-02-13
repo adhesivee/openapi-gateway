@@ -13,6 +13,7 @@ use cron_parser::parse;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
+use tracing::Level;
 
 const CONFIG_FILE: &str = "openapi-gateway-config.toml";
 
@@ -20,6 +21,14 @@ pub type RwGatewayEntries = Arc<RwLock<Vec<GatewayEntry>>>;
 
 #[tokio::main]
 async fn main() {
+    let collector = tracing_subscriber::fmt()
+        .json()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(collector)
+        .unwrap();
+
     let config = Config::parse_from_file(CONFIG_FILE).unwrap();
     let reload_cron = config.reload_cron.clone();
 
@@ -39,13 +48,11 @@ async fn main() {
         let entries = cron_entries;
         loop {
             if let Ok(next) = parse(&reload_cron, &Utc::now()) {
-                println!("{}", next.to_rfc3339());
-
                 let diff = next - Utc::now();
 
                 sleep(Duration::from_secs(diff.num_seconds() as u64)).await;
 
-                println!("Collect");
+                tracing::info!("Start collecting OpenAPI files");
 
                 let mut entries = entries.write().await;
 

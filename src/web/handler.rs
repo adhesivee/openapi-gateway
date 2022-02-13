@@ -77,7 +77,6 @@ pub async fn gateway_handler(
             file = &"index.html";
         }
 
-        println!("Static file {file}");
         let mut builder = Response::builder().status(StatusCode::OK);
 
         if file.ends_with(".json") {
@@ -88,15 +87,12 @@ pub async fn gateway_handler(
         return builder.body(Body::from(bytes)).unwrap();
     }
 
-    println!("{path_query}");
-
     let entry = entries
         .iter()
         .filter(|val| val.contains_route(path, req.method().as_str()))
         .last();
 
     if let Some(entry) = entry {
-        println!("Entry found");
         let entry_uri: &Uri = &entry.config.uri();
 
         let uri = format!(
@@ -105,8 +101,6 @@ pub async fn gateway_handler(
             entry_uri.host().unwrap(),
             path_query
         );
-
-        println!("Forward to {uri}");
 
         *req.uri_mut() = Uri::try_from(uri).unwrap();
         req.headers_mut().insert(
