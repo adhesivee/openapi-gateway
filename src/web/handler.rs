@@ -1,17 +1,18 @@
-use crate::gateway::GatewayEntry;
 use crate::ui::{SwaggerUiConfig, Url};
 use crate::web::HttpsClient;
+use crate::RwGatewayEntries;
 use axum::body::Body;
 use axum::extract::{Extension, Path};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderValue, Method, Request, Response, StatusCode, Uri};
 use axum::Json;
-use std::sync::Arc;
 
 pub async fn swagger_def_handler(
-    Extension(entries): Extension<Arc<Vec<GatewayEntry>>>,
+    Extension(entries): Extension<RwGatewayEntries>,
     Path(def): Path<String>,
 ) -> Response<Body> {
+    let entries = entries.read().await;
+
     let entry = entries
         .iter()
         .filter(|entry| base64::encode(entry.config.name.clone()) == def)
@@ -32,10 +33,9 @@ pub async fn swagger_def_handler(
 }
 
 pub async fn swagger_conf_handler(
-    Extension(entries): Extension<Arc<Vec<GatewayEntry>>>,
+    Extension(entries): Extension<RwGatewayEntries>,
 ) -> (StatusCode, Json<SwaggerUiConfig>) {
-    // @TODO: These files should be proxied
-
+    let entries = entries.read().await;
     let config = SwaggerUiConfig {
         urls: entries
             .iter()
@@ -50,10 +50,12 @@ pub async fn swagger_conf_handler(
 }
 
 pub async fn gateway_handler(
-    Extension(entries): Extension<Arc<Vec<GatewayEntry>>>,
+    Extension(entries): Extension<RwGatewayEntries>,
     Extension(client): Extension<HttpsClient>,
     mut req: Request<Body>,
 ) -> Response<Body> {
+    let entries = entries.read().await;
+
     let path = req.uri().path();
     let path_query = req
         .uri()

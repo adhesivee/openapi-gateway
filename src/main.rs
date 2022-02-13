@@ -6,9 +6,14 @@ mod web;
 
 use crate::config::Config;
 use crate::gateway::openapi::parse_from_json;
+use crate::gateway::GatewayEntry;
 use crate::web::{get_bytes, new_https_client, serve_with_config};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 const CONFIG_FILE: &str = "openapi-gateway-config.toml";
+
+pub type RwGatewayEntries = Arc<RwLock<Vec<GatewayEntry>>>;
 
 #[tokio::main]
 async fn main() {
@@ -23,5 +28,7 @@ async fn main() {
         entries.push(parse_from_json(config, &bytes));
     }
 
-    serve_with_config(client, entries).await
+    let entries = Arc::new(RwLock::from(entries));
+
+    serve_with_config(client, Arc::clone(&entries)).await
 }
