@@ -22,12 +22,25 @@ url = "https://petstore3.swagger.io/api/v3/openapi.json"
 ```
 
 ## Start project
+
+### Cargo run
 ```
 cargo run
 ```
+
+### Cargo install
+```
+cargo install openapi-gateway
+openapi-gateway
+```
+
+### After project setup
+
 Open `http://127.0.0.1:8080/docs/` to find the configured routes.
 
 
 ## Open points
 - [ ] OpenAPI YAML file format support
 - [ ] Metrics
+- [ ] Docker
+- [ ] Tags based inclusion/exclusion
