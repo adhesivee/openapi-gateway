@@ -1,11 +1,16 @@
 # OpenAPI Gateway
 
-API Gateway based on OpenAPI routes
+API Gateway based on OpenAPI routes.
+
+Supports hot reloading of configuration.
 
 ## Config
 
 ```toml
 # openapi-gateway.config.toml
+
+# Refresh every minute
+reload_cron = "* * * * *"
 
 [[openapi_urls]]
 name = "Swagger petstore example#1"

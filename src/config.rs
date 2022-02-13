@@ -3,12 +3,13 @@ use serde::Deserialize;
 use std::path::Path;
 use toml::de::Error;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
+    pub reload_cron: String,
     pub openapi_urls: Vec<OpenApiConfig>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct OpenApiConfig {
     pub name: String,
     pub url: String,
