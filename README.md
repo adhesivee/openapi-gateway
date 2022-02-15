@@ -42,7 +42,6 @@ Open `http://127.0.0.1:8080/docs/` to find the configured routes.
 
 
 ## Open points
-- [ ] OpenAPI YAML file format support
 - [ ] Metrics
 - [ ] Docker
 - [ ] Tags based inclusion/exclusion

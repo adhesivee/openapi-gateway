@@ -3,7 +3,7 @@ mod handler;
 use crate::web::handler::{gateway_handler, swagger_conf_handler, swagger_def_handler};
 use crate::RwGatewayEntries;
 use axum::body::{Body, Bytes};
-use axum::http::{Request, Uri};
+use axum::http::{HeaderMap, Request, Uri};
 use axum::routing::{any, get};
 use axum::{AddExtensionLayer, Router};
 use hyper::client::HttpConnector;
@@ -22,13 +22,17 @@ pub fn new_https_client() -> HttpsClient {
     hyper::Client::builder().build(https)
 }
 
-pub async fn get_bytes(client: &HttpsClient, uri: &Uri) -> Bytes {
+pub async fn simple_get(client: &HttpsClient, uri: &Uri) -> (HeaderMap, Bytes) {
     let response = client
         .request(Request::get(uri).body(Body::empty()).unwrap())
         .await
         .unwrap();
 
-    hyper::body::to_bytes(response.into_body()).await.unwrap()
+    let headers = response.headers().clone();
+
+    let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (headers, bytes)
 }
 
 pub async fn serve_with_config(client: HttpsClient, entries: RwGatewayEntries) {

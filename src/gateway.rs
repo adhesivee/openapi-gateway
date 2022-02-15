@@ -6,8 +6,14 @@ use regex::Regex;
 #[derive(Debug)]
 pub struct GatewayEntry {
     pub config: OpenApiConfig,
-    pub openapi_file: Vec<u8>,
+    pub openapi_file: Option<OpenApiFile>,
     pub routes: Vec<Route>,
+}
+
+#[derive(Debug)]
+pub struct OpenApiFile {
+    pub content_type: String,
+    pub contents: Vec<u8>
 }
 
 #[derive(Debug)]
