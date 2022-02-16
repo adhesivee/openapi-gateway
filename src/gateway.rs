@@ -44,7 +44,7 @@ mod tests {
     use std::str::FromStr;
     use regex::Regex;
     use crate::config::OpenApiConfig;
-    use crate::gateway::{GatewayEntry, Route};
+    use crate::gateway::{GatewayEntry, OpenApiFile, Route};
 
     #[test]
     fn test_no_match_on_method() {
@@ -74,7 +74,12 @@ mod tests {
     fn entry_with_route(routes: Vec<Route>) -> GatewayEntry {
         GatewayEntry {
             config: OpenApiConfig { name: "".to_string(), url: "".to_string() },
-            openapi_file: vec![],
+            openapi_file: Some(
+                OpenApiFile {
+                    content_type: "".to_string(),
+                    contents: vec![]
+                }
+            ),
             routes
         }
     }
