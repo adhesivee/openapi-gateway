@@ -86,11 +86,11 @@ pub async fn gateway_handler(
         let exe_file = std::env::current_exe();
         let exe_folder = exe_file
             .as_ref()
-            .map(|val| val.as_path());
+            .map(|val| val.as_path().parent());
 
 
         let default = format!("swagger-ui/{}", file);
-        let file_path = if let Ok(path) = exe_folder {
+        let file_path = if let Ok(Some(path)) = exe_folder {
             let swagger_ui_folder = path.join("swagger-ui");
 
             if swagger_ui_folder.exists() {
