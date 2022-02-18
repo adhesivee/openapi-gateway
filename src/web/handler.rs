@@ -83,7 +83,30 @@ pub async fn gateway_handler(
             builder = builder.header(CONTENT_TYPE, "application/json");
         }
 
-        let bytes = std::fs::read(format!("swagger-ui/{}", file)).unwrap();
+        let exe_file = std::env::current_exe();
+        let exe_folder = exe_file
+            .as_ref()
+            .map(|val| val.as_path())
+            .map(|val| val.parent().unwrap());
+
+
+        let default = format!("swagger-ui/{}", file);
+        let file_path = if let Ok(path) = exe_folder {
+            let swagger_ui_folder = path.join("swagger-ui");
+
+            if swagger_ui_folder.exists() {
+                path.join(file)
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+            } else {
+                default
+            }
+        } else {
+            default
+        };
+
+        let bytes = std::fs::read(file_path).unwrap();
         return builder.body(Body::from(bytes)).unwrap();
     }
 
