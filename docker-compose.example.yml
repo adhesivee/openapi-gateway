@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  openapi-gateway:
+    build: .
+    ports:
+    - "8080:8080"
+    volumes:
+    - "./docker/example/openapi-gateway-config.toml:/openapi-gateway/openapi-gateway-config.toml:ro"
