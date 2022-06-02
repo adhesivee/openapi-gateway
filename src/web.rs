@@ -1,14 +1,22 @@
 mod handler;
 
+use std::convert::Infallible;
+use std::error::Error;
 use crate::web::handler::{gateway_handler, swagger_conf_handler, swagger_def_handler};
 use crate::RwGatewayEntries;
-use axum::body::{Body, Bytes};
+use axum::body::{Body, Bytes, StreamBody};
 use axum::http::{HeaderMap, Request, Uri};
 use axum::routing::{any, get};
 use axum::{AddExtensionLayer, Router};
 use hyper::client::HttpConnector;
 use hyper_rustls::HttpsConnector;
 use std::net::SocketAddr;
+use axum::response::{IntoResponse, Response};
+use futures::channel::mpsc::channel;
+use futures::channel::mpsc::{Receiver, Sender};
+use futures::SinkExt;
+use tokio::io::AsyncReadExt;
+use tokio::time::{Duration, sleep};
 
 pub type HttpsClient = hyper::client::Client<HttpsConnector<HttpConnector>, Body>;
 
@@ -22,21 +30,32 @@ pub fn new_https_client() -> HttpsClient {
     hyper::Client::builder().build(https)
 }
 
-pub async fn simple_get(client: &HttpsClient, uri: &Uri) -> (HeaderMap, Bytes) {
+pub async fn simple_get(client: &HttpsClient, uri: &Uri) -> Result<(HeaderMap, Bytes), HttpError> {
     let response = client
         .request(Request::get(uri).body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+        .await;
 
-    let headers = response.headers().clone();
+    match response {
+        Ok(response) => {
+            let headers = response.headers().clone();
 
-    let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-    (headers, bytes)
+            Ok((headers, bytes))
+        }
+        Err(err) => { Err(HttpError::Error(err)) }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum HttpError {
+    #[error("Some error")]
+    Error(#[from] hyper::Error)
 }
 
 pub async fn serve_with_config(client: HttpsClient, entries: RwGatewayEntries) {
     let app = Router::new()
+        .route("/stream", get(stream_test))
         .route("/docs/swagger-config.json", get(swagger_conf_handler))
         .route("/docs/defs/:def", get(swagger_def_handler))
         .fallback(any(gateway_handler))
