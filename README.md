@@ -2,7 +2,7 @@
 
 API Gateway based on OpenAPI routes.
 
-Supports hot reloading of configuration.
+Supports hot reloading of OpenAPI routes.
 
 ## Config
 
@@ -26,3 +26,8 @@ url = "https://petstore3.swagger.io/api/v3/openapi.json"
 cargo run
 ```
 Open `http://127.0.0.1:8080/docs/` to find the configured routes.
+
+
+## Open points
+- [ ] OpenAPI YAML file format support
+- [ ] Metrics
