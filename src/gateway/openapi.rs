@@ -102,6 +102,10 @@ fn collect_routes(json: &OpenApiV3, server_prefix: &str) -> Vec<Route> {
                     Route {
                         uri_regex: regex,
                         method: method.0.clone(),
+                        path_parameters: parameters.iter()
+                            .filter(|param| param.in_type == "path")
+                            .map(|param| param.clone())
+                            .collect::<Vec<_>>()
                     }
                 })
                 .collect::<Vec<_>>()

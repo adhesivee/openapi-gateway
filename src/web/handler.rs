@@ -1,6 +1,6 @@
 use crate::ui::{SwaggerUiConfig, Url};
 use crate::web::HttpClient;
-use crate::RwGatewayEntries;
+use crate::{GatewayEntry, RwGatewayEntries};
 use axum::body::Body;
 use axum::extract::{State, Path};
 use axum::http::header::CONTENT_TYPE;
@@ -137,10 +137,11 @@ pub async fn gateway_handler(
             .unwrap();
     }
 
-    let entry = entries
-        .iter()
-        .filter(|val| val.contains_route_and_method(path, req.method().as_str()))
-        .last();
+    let entry = matching_route_with_least_matching_parameters(
+        path,
+        req.method().as_str(),
+        &*entries
+    );
 
     let req = if let Some(entry) = entry {
         let entry_uri: &Uri = &entry.config.uri();
@@ -230,4 +231,94 @@ pub async fn gateway_handler(
     }
 
     response
+}
+
+fn matching_route_with_least_matching_parameters<'a>(
+    path: &str,
+    method: &str,
+    entries: &'a Vec<GatewayEntry>
+) -> Option<&'a GatewayEntry> {
+    entries
+        .iter()
+        .filter_map(|entry| {
+            let route = entry.routes.iter()
+                .filter(|route| route.uri_regex.is_match(path))
+                .filter(|route| route.method.to_lowercase() == method.to_lowercase())
+                .min_by(|left, right| left.path_parameters.len().cmp(&right.path_parameters.len()));
+
+            match route {
+                Some(route) => Some((route, entry)),
+                None => None
+            }
+        })
+        .min_by(|left, right| left.0.path_parameters.len().cmp(&right.0.path_parameters.len()))
+        .map(|route_entry| route_entry.1)
+}
+
+#[cfg(test)]
+mod tests {
+    use regex::{escape, Regex};
+    use crate::{GatewayEntry, OpenApiConfig};
+    use crate::gateway::Route;
+    use crate::openapi::Parameter;
+    use crate::web::handler::matching_route_with_least_matching_parameters;
+
+    #[test]
+    fn route_with_least_parameters() {
+        let entry1 = GatewayEntry {
+            config: OpenApiConfig {
+                name: "entry1".to_string(),
+                url: "".to_string()
+            },
+            openapi_file: None,
+            routes: vec![
+                Route {
+                    uri_regex: Regex::new(&escape("/foo/bar")).unwrap(),
+                    method: "GET".to_string(),
+                    path_parameters: vec![]
+                },
+            ]
+        };
+
+        let entry2 = GatewayEntry {
+            config: OpenApiConfig {
+                name: "entry2".to_string(),
+                url: "".to_string()
+            },
+            openapi_file: None,
+            routes: vec![
+                Route {
+                    uri_regex: Regex::new("/foo/.*").unwrap(),
+                    method: "GET".to_string(),
+                    path_parameters: vec![
+                        Parameter {
+                            name: "par".to_string(),
+                            in_type: "path".to_string()
+                        }
+                    ]
+                },
+            ]
+        };
+
+        let entries = vec![entry1, entry2];
+
+        let route = matching_route_with_least_matching_parameters(
+            "/foo/bar",
+            "GET",
+            &entries
+        );
+
+        assert!(route.is_some());
+        assert_eq!("entry1", route.unwrap().config.name);
+
+
+        let route = matching_route_with_least_matching_parameters(
+            "/foo/not-bar",
+            "GET",
+            &entries
+        );
+
+        assert!(route.is_some());
+        assert_eq!("entry2", route.unwrap().config.name);
+    }
 }

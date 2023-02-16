@@ -2,6 +2,7 @@ pub mod openapi;
 
 use crate::config::OpenApiConfig;
 use regex::Regex;
+use crate::openapi::Parameter;
 
 #[derive(Debug)]
 pub struct GatewayEntry {
@@ -20,6 +21,7 @@ pub struct OpenApiFile {
 pub struct Route {
     pub uri_regex: Regex,
     pub method: String,
+    pub path_parameters: Vec<Parameter>
 }
 
 impl GatewayEntry {
@@ -43,7 +45,7 @@ impl GatewayEntry {
 
 impl Route {
     fn new(uri_regex: Regex, method: String) -> Route {
-        Self { uri_regex, method }
+        Self { uri_regex, method, path_parameters: vec![] }
     }
 }
 #[cfg(test)]
