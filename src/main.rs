@@ -6,7 +6,7 @@ mod web;
 
 use std::fmt::Debug;
 use crate::config::{Config, OpenApiConfig};
-use crate::gateway::openapi::{ContentType, parse_openapi};
+use crate::gateway::openapi::{ContentType, parse_openapi, ParseError};
 use crate::gateway::GatewayEntry;
 use crate::web::{simple_get, new_https_client, serve_with_config, HttpsClient, HttpError};
 use chrono::Utc;
@@ -40,7 +40,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut entries = vec![];
     for config in config.openapi_urls.into_iter() {
-        entries.push(fetch_entry(&client, &config).await?);
+        entries.push(
+            fetch_entry(&client, &config)
+                .await
+                .unwrap_or(GatewayEntry {
+                    config: config.clone(),
+                    openapi_file: None,
+                    routes: vec![]
+                })
+        );
     }
 
     let entries = Arc::new(RwLock::from(entries));
@@ -100,10 +108,17 @@ async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> Result<Gat
         .unwrap()
         .to_lowercase();
 
-    let content_type = if content_type == "application/yaml" {
-        ContentType::YAML
-    } else {
-        ContentType::JSON
+    let content_type = match content_type.as_str() {
+        "application/yaml" => ContentType::YAML,
+        "application/yml" => ContentType::YAML,
+        "application/json" => ContentType::JSON,
+        _ => {
+            if config.url.ends_with(".yml") || config.url.ends_with(".yaml") {
+                ContentType::YAML
+            } else {
+                ContentType::JSON
+            }
+        }
     };
 
     Ok(
@@ -111,7 +126,7 @@ async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> Result<Gat
             content_type,
             config.clone(),
             &response.1,
-        )
+        )?
     )
 }
 
@@ -119,6 +134,8 @@ async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> Result<Gat
 pub enum FetchError {
     #[error("HTTP error")]
     HttpError(#[from] HttpError),
+    #[error("Unknown error")]
+    UnknownError(#[from] Box<dyn std::error::Error + Send>),
     #[error("Parse error")]
-    ParseError(#[from] Box<dyn std::error::Error + Send>),
+    ParseError(#[from] ParseError)
 }

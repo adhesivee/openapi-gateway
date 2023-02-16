@@ -9,14 +9,21 @@ pub enum ContentType {
     YAML
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum ParseError {
+    #[error("JSON Parse error")]
+    JsonParseError(#[from] serde_json::Error),
+    #[error("YAML Parse error")]
+    YamlParseError(#[from] serde_yaml::Error),
+}
 pub fn parse_openapi(
     content_type: ContentType,
     config: OpenApiConfig,
     buffer: &[u8]
-) -> GatewayEntry {
+) -> Result<GatewayEntry, ParseError> {
     let (content_type, mut document): (&'static str, OpenApiV3) = match content_type {
-        ContentType::JSON => { ("application/json", serde_json::from_slice(buffer).unwrap()) }
-        ContentType::YAML => { ("application/yaml", serde_yaml::from_slice(buffer).unwrap()) }
+        ContentType::JSON => { ("application/json", serde_json::from_slice(buffer)?) }
+        ContentType::YAML => { ("application/yaml", serde_yaml::from_slice(buffer)?) }
     };
 
     if document.servers.is_empty() {
@@ -43,7 +50,7 @@ pub fn parse_openapi(
         .flatten()
         .collect();
 
-    GatewayEntry {
+    Ok(GatewayEntry {
         config,
         openapi_file: Some(OpenApiFile {
             content_type: content_type.to_string(),
@@ -51,7 +58,7 @@ pub fn parse_openapi(
 
         }),
         routes,
-    }
+    })
 }
 
 fn collect_routes(json: &OpenApiV3, server_prefix: &str) -> Vec<Route> {

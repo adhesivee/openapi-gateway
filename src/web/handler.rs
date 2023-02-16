@@ -19,11 +19,18 @@ pub async fn swagger_def_handler(
         .last();
 
     if let Some(entry) = entry {
-        Response::builder()
-            .status(StatusCode::OK)
-            .header(CONTENT_TYPE, &entry.openapi_file.as_ref().unwrap().content_type)
-            .body(Body::from(entry.openapi_file.as_ref().unwrap().contents.clone()))
-            .unwrap()
+        if let Some(openapi_file) = &entry.openapi_file {
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(CONTENT_TYPE, openapi_file.content_type.clone())
+                .body(Body::from(entry.openapi_file.as_ref().unwrap().contents.clone()))
+                .unwrap()
+        } else {
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .unwrap()
+        }
     } else {
         Response::builder()
             .status(StatusCode::NOT_FOUND)
