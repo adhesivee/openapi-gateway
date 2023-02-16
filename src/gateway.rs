@@ -1,5 +1,6 @@
 pub mod openapi;
 
+use regex::Regex;
 use crate::config::OpenApiConfig;
 
 #[derive(Debug)]
@@ -11,14 +12,25 @@ pub struct GatewayEntry {
 
 #[derive(Debug)]
 pub struct Route {
-    pub uri: String,
+    pub uri_regex: Regex,
     pub methods: Vec<String>,
 }
 
-impl From<(String, Vec<String>)> for Route {
-    fn from(from: (String, Vec<String>)) -> Self {
+impl GatewayEntry {
+    pub fn contains_route(&self, path: &str, method: &str) -> bool {
+
+        self.routes.iter()
+            .find(|route| {
+                route.uri_regex.is_match(path) && route.methods.contains(&method.to_lowercase())
+            })
+            .is_some()
+    }
+}
+
+impl From<(Regex, Vec<String>)> for Route {
+    fn from(from: (Regex, Vec<String>)) -> Self {
         Route {
-            uri: from.0,
+            uri_regex: from.0,
             methods: from.1,
         }
     }

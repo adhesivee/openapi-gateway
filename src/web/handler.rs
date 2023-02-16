@@ -91,12 +91,7 @@ pub async fn gateway_handler(
 
     let entry = entries
         .iter()
-        .filter(|val| {
-            val.routes
-                .iter()
-                .find(|entry| entry.uri == path_query.to_string() && entry.methods.contains(&req.method().to_string().to_lowercase()))
-                .is_some()
-        })
+        .filter(|val| val.contains_route(path, req.method().as_str()))
         .last();
 
     if let Some(entry) = entry {
