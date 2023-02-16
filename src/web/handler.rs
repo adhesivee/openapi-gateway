@@ -1,12 +1,12 @@
-use std::sync::Arc;
-use axum::body::Body;
-use axum::extract::{Extension, Path};
-use axum::http::{HeaderValue, Method, Request, Response, StatusCode, Uri};
-use axum::http::header::CONTENT_TYPE;
-use axum::Json;
 use crate::gateway::GatewayEntry;
 use crate::ui::{SwaggerUiConfig, Url};
 use crate::web::HttpsClient;
+use axum::body::Body;
+use axum::extract::{Extension, Path};
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{HeaderValue, Method, Request, Response, StatusCode, Uri};
+use axum::Json;
+use std::sync::Arc;
 
 pub async fn swagger_def_handler(
     Extension(entries): Extension<Arc<Vec<GatewayEntry>>>,
@@ -82,7 +82,6 @@ pub async fn gateway_handler(
             builder = builder.header(CONTENT_TYPE, "application/json");
         }
 
-
         let bytes = std::fs::read(format!("swagger-ui/{}", file)).unwrap();
         return builder.body(Body::from(bytes)).unwrap();
     }
@@ -108,7 +107,10 @@ pub async fn gateway_handler(
         println!("Forward to {uri}");
 
         *req.uri_mut() = Uri::try_from(uri).unwrap();
-        req.headers_mut().insert("host", HeaderValue::from_str(entry.config.uri().host().unwrap()).unwrap());
+        req.headers_mut().insert(
+            "host",
+            HeaderValue::from_str(entry.config.uri().host().unwrap()).unwrap(),
+        );
         client.request(req).await.unwrap()
     } else {
         Response::builder()

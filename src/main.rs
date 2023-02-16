@@ -1,8 +1,8 @@
 mod config;
 mod gateway;
+mod openapi;
 mod ui;
 mod web;
-mod openapi;
 
 use crate::config::Config;
 use crate::gateway::openapi::parse_from_json;
@@ -18,12 +18,10 @@ async fn main() {
 
     let mut entries = vec![];
     for config in config.openapi_urls.into_iter() {
-        let bytes = get_bytes(&client, &config.uri())
-            .await;
+        let bytes = get_bytes(&client, &config.uri()).await;
 
         entries.push(parse_from_json(config, &bytes));
     }
 
-    serve_with_config(client, entries)
-        .await
+    serve_with_config(client, entries).await
 }
