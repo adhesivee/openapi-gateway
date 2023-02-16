@@ -2,6 +2,12 @@
 name = "openapi-gateway"
 version = "0.1.0"
 edition = "2021"
+description = "API Gateway based on OpenAPI routes"
+license = "MIT"
+license-file = "https://github.com/adhesivee/openapi-gateway/blob/main/LICENSE"
+documentation = "https://docs.rs/openapi-gateway"
+homepage = "https://github.com/adhesivee/openapi-gateway"
+repository = "https://github.com/adhesivee/openapi-gateway"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
