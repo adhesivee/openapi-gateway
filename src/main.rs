@@ -33,7 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
 
-    let config = Config::parse_from_file(&format!("{}/{CONFIG_FILE}", std::env::current_dir().unwrap().to_str().unwrap())).unwrap();
+    let config = Config::parse_from_file(&format!("{}/{CONFIG_FILE}", std::env::current_dir().unwrap().to_str().unwrap()))
+        .unwrap_or_else(|_| Config::parse_from_env().unwrap());
     let reload_cron = config.reload_cron.clone();
 
     let client = new_https_client();

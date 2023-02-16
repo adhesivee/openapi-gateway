@@ -3,6 +3,8 @@ use crate::gateway::{GatewayEntry, OpenApiFile, Route};
 use crate::openapi::{OpenApiV3, Parameter, Server};
 use regex::{escape, Regex};
 use std::str::FromStr;
+use serde_json::{Value as JsonValue, Value};
+use serde_yaml::Value as YmlValue;
 
 pub enum ContentType {
     JSON,
@@ -19,11 +21,29 @@ pub enum ParseError {
 pub fn parse_openapi(
     content_type: ContentType,
     config: OpenApiConfig,
-    buffer: &[u8]
+    file_buffer: &[u8]
 ) -> Result<GatewayEntry, ParseError> {
+    let mut buffer = file_buffer.to_vec();
     let (content_type, mut document): (&'static str, OpenApiV3) = match content_type {
-        ContentType::JSON => { ("application/json", serde_json::from_slice(buffer)?) }
-        ContentType::YAML => { ("application/yaml", serde_yaml::from_slice(buffer)?) }
+        ContentType::JSON => {
+            let mut value: JsonValue = serde_json::from_slice(buffer.as_slice())?;
+            let value_map = value.as_object_mut().unwrap();
+            // Remove servers as it has to go through this application
+            value_map.remove("servers");
+
+            buffer = serde_json::to_vec(&value).unwrap();
+            ("application/json", serde_json::from_slice(&buffer)?)
+        }
+        ContentType::YAML => {
+            let mut value: YmlValue = serde_yaml::from_slice(buffer.as_slice())?;
+            let value_map = value.as_mapping_mut().unwrap();
+            // Remove servers as it has to go through this application
+            value_map.remove(&serde_yaml::Value::String("servers".to_string()));
+
+            buffer = serde_json::to_vec(&value).unwrap();
+
+            ("application/yaml", serde_yaml::from_slice(&buffer)?)
+        }
     };
 
     if document.servers.is_empty() {

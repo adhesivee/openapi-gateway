@@ -137,7 +137,13 @@ pub async fn gateway_handler(
             "host",
             HeaderValue::from_str(entry.config.uri().host().unwrap()).unwrap(),
         );
-        client.request(req).await.unwrap()
+
+        let mut response: Response<Body> = client.request(req).await.unwrap();
+
+        let mut headers = response.headers_mut();
+        headers.insert("Access-Control-Allow-Origin", HeaderValue::from_str("*").unwrap());
+
+        response
     } else {
         Response::builder()
             .status(StatusCode::NOT_FOUND)
