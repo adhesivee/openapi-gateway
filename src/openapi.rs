@@ -6,6 +6,7 @@ type HttpMethod = String;
 
 #[derive(Clone, Deserialize)]
 pub struct OpenApiV3 {
+    #[serde(default)]
     pub servers: Vec<Server>,
     pub paths: BTreeMap<PathName, BTreeMap<HttpMethod, PathMethod>>,
 }
