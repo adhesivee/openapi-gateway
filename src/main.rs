@@ -42,10 +42,13 @@ async fn main() {
     }
 
     let entries = Arc::new(RwLock::from(entries));
+    spawn_reload_cron(reload_cron,Arc::clone(&entries)).await;
 
-    let cron_entries = Arc::clone(&entries);
+    serve_with_config(client, entries).await
+}
+
+async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayEntry>>>) {
     tokio::spawn(async move {
-        let entries = cron_entries;
         loop {
             if let Ok(next) = parse(&reload_cron, &Utc::now()) {
                 let diff = next - Utc::now();
@@ -54,16 +57,25 @@ async fn main() {
 
                 tracing::info!("Start collecting OpenAPI files");
 
-                let mut entries = entries.write().await;
+                let mut reloaded_entries = {
+                    let mut entries = entries.read().await;
 
-                for entry in entries.iter_mut() {
-                    *entry = parse_from_json(entry.config.clone(), &entry.openapi_file.to_vec());
+                    entries.iter()
+                        .map(|entry| parse_from_json(entry.config.clone(), &entry.openapi_file.to_vec()))
+                        .collect::<Vec<_>>()
+                };
+
+                {
+                    let mut entries = entries.write().await;
+
+                    entries.iter_mut()
+                        .for_each(|entry|{
+                            *entry = reloaded_entries.remove(0)
+                        })
                 }
 
                 sleep(Duration::from_secs(1)).await;
             }
         }
     });
-
-    serve_with_config(client, entries).await
 }
