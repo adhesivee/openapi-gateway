@@ -1,10 +1,8 @@
 use crate::config::OpenApiConfig;
-use crate::gateway::{OpenApiEntry, Route};
-use axum::http::Uri;
+use crate::gateway::{GatewayEntry, Route};
 use serde_json::{Map, Value};
-use std::slice::Iter;
 
-pub fn build_from_json(config: OpenApiConfig, buffer: &[u8]) -> OpenApiEntry {
+pub fn parse_from_json(config: OpenApiConfig, buffer: &[u8]) -> GatewayEntry {
     let json: Value = serde_json::from_slice(buffer).unwrap();
 
     let mut default_server = Map::new();
@@ -27,7 +25,7 @@ pub fn build_from_json(config: OpenApiConfig, buffer: &[u8]) -> OpenApiEntry {
         .flatten()
         .collect();
 
-    OpenApiEntry { config, openapi_file: buffer.to_vec(), routes }
+    GatewayEntry { config, openapi_file: buffer.to_vec(), routes }
 }
 
 fn collect_routes(json: &Value, server_prefix: &str) -> Vec<Route> {

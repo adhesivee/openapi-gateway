@@ -1,5 +1,5 @@
 use axum::http::Uri;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path::Path;
 use toml::de::Error;
 
@@ -14,12 +14,14 @@ pub struct OpenApiConfig {
     pub url: String,
 }
 
-pub fn read_from_file<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
-    toml::from_str(
-        std::fs::read_to_string(path)
-            .expect("{path} not found")
-            .as_str(),
-    )
+impl Config {
+    pub fn parse_from_file<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
+        toml::from_str(
+            std::fs::read_to_string(path)
+                .expect("{path} not found")
+                .as_str(),
+        )
+    }
 }
 
 impl OpenApiConfig {
