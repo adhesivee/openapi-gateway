@@ -38,10 +38,9 @@ url = "https://petstore3.swagger.io/api/v3/openapi.yaml"
 cargo run
 ```
 
-### Cargo install
+### Docker
 ```
-cargo install openapi-gateway
-openapi-gateway
+docker-compose -f docker-compose.example.yml up
 ```
 
 ### After project setup
@@ -51,5 +50,4 @@ Open `http://127.0.0.1:8080/docs/` to find the configured routes.
 
 ## Open points
 - [ ] Metrics
-- [ ] Docker
 - [ ] Tags based inclusion/exclusion

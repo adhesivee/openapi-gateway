@@ -1,0 +1,18 @@
+# Refresh every minute
+reload_cron = "* * * * *"
+
+[[openapi_urls]]
+name = "Swagger petstore example V2#JSON"
+url = "https://petstore.swagger.io/v2/swagger.json"
+
+[[openapi_urls]]
+name = "Swagger petstore example V2#YAML"
+url = "https://petstore.swagger.io/v2/swagger.yaml"
+
+[[openapi_urls]]
+name = "Swagger petstore example V3#JSON"
+url = "https://petstore3.swagger.io/api/v3/openapi.json"
+
+[[openapi_urls]]
+name = "Swagger petstore example V3#YAML"
+url = "https://petstore3.swagger.io/api/v3/openapi.yaml"
