@@ -151,9 +151,10 @@ async fn handler(
     let entry = entries
         .iter()
         .filter(|val| {
-            let routes_strs: Vec<_> = val.routes.iter().map(|val| val.uri.clone()).collect();
-
-            routes_strs.contains(&path_query.to_string())
+            val.routes
+                .iter()
+                .find(|entry| entry.uri == path_query.to_string() && entry.methods.contains(&req.method().to_string().to_lowercase()))
+                .is_some()
         })
         .last();
 
