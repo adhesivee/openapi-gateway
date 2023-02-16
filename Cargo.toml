@@ -24,7 +24,7 @@ serde_yaml = "0.9"
 toml = "0.5"
 thiserror = "1"
 hyper-rustls = { version = "0.23", features = ["http1", "webpki-roots"] }
-base64 = "0.13"
+base64 = "0.21"
 regex = "1.5"
 cron-parser = "0.7"
 chrono = "0.4"

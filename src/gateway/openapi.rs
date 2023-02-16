@@ -6,6 +6,7 @@ use std::str::FromStr;
 use serde_json::{Value as JsonValue, Value};
 use serde_yaml::Value as YmlValue;
 
+#[derive(Debug)]
 pub enum ContentType {
     JSON,
     YAML
@@ -88,9 +89,15 @@ fn collect_routes(json: &OpenApiV3, server_prefix: &str) -> Vec<Route> {
             let path_uri = format!("{}{}", server_prefix, path.0);
 
             path.1
+                .methods
                 .iter()
                 .map(|method| {
-                    let regex = regex_from_route(&path_uri, &method.1.parameters);
+                    let parameters = method.1
+                        .parameters
+                        .as_ref()
+                        .unwrap_or(&path.1.parameters);
+
+                    let regex = regex_from_route(&path_uri, parameters);
 
                     Route {
                         uri_regex: regex,
@@ -108,7 +115,7 @@ fn regex_from_route(url: &str, parameters: &Vec<Parameter>) -> Regex {
         .iter()
         .filter(|param| param.in_type == "path")
         .fold(escape(url), |pattern, param| {
-            pattern.replace(&format!("\\{{{}\\}}", param.name), "[^/]*")
+            pattern.replace(&format!("\\{{{}\\}}", param.name.replace("-", "\\-")), "[^/]*")
         });
 
     Regex::from_str(&format!("^{}$", &pattern)).unwrap()

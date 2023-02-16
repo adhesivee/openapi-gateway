@@ -1,11 +1,12 @@
 use crate::ui::{SwaggerUiConfig, Url};
-use crate::web::HttpsClient;
+use crate::web::HttpClient;
 use crate::RwGatewayEntries;
 use axum::body::Body;
 use axum::extract::{State, Path};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderValue, Method, Request, Response, StatusCode, Uri};
 use axum::Json;
+use crate::config::CorsConfig;
 
 pub async fn swagger_def_handler(
     State(entries): State<RwGatewayEntries>,
@@ -58,7 +59,8 @@ pub async fn swagger_conf_handler(
 
 pub async fn gateway_handler(
     State(entries): State<RwGatewayEntries>,
-    State(client): State<HttpsClient>,
+    State(global_cors_config): State<Option<CorsConfig>>,
+    State(client): State<HttpClient>,
     mut req: Request<Body>,
 ) -> Response<Body> {
     let entries = entries.read().await;
@@ -113,24 +115,52 @@ pub async fn gateway_handler(
         };
 
         tracing::info!("Loading from disk: {file_path}");
+        let content_type = if let Some(split) = file_path.rsplit_once(".") {
+            match split.1 {
+                "css" => "text/css",
+                "js" => "text/javascript",
+                "html" => "text/html",
+                "png" => "image/png",
+                "json" => "application/json",
+                "yml" => "application/yaml",
+                "yaml" => "application/yaml",
+                _ => "text/plain"
+            }
+        } else {
+            "text/plain"
+        };
+
         let bytes = std::fs::read(file_path).unwrap();
-        return builder.body(Body::from(bytes)).unwrap();
+        return builder
+            .header(CONTENT_TYPE, content_type)
+            .body(Body::from(bytes))
+            .unwrap();
     }
 
     let entry = entries
         .iter()
-        .filter(|val| val.contains_route(path, req.method().as_str()))
+        .filter(|val| val.contains_route_and_method(path, req.method().as_str()))
         .last();
 
-    if let Some(entry) = entry {
+    let req = if let Some(entry) = entry {
         let entry_uri: &Uri = &entry.config.uri();
 
-        let uri = format!(
-            "{}://{}{}",
-            entry_uri.scheme_str().unwrap(),
-            entry_uri.host().unwrap(),
-            path_query
-        );
+        let uri = if let Some(port) = entry_uri.port_u16() {
+            format!(
+                "{}://{}:{}{}",
+                entry_uri.scheme_str().unwrap(),
+                entry_uri.host().unwrap(),
+                port,
+                path_query
+            )
+        } else {
+            format!(
+                "{}://{}{}",
+                entry_uri.scheme_str().unwrap(),
+                entry_uri.host().unwrap(),
+                path_query
+            )
+        };
 
         *req.uri_mut() = Uri::try_from(uri).unwrap();
         req.headers_mut().insert(
@@ -138,16 +168,66 @@ pub async fn gateway_handler(
             HeaderValue::from_str(entry.config.uri().host().unwrap()).unwrap(),
         );
 
-        let mut response: Response<Body> = client.request(req).await.unwrap();
-
-        let mut headers = response.headers_mut();
-        headers.insert("Access-Control-Allow-Origin", HeaderValue::from_str("*").unwrap());
-
-        response
+        req
     } else {
-        Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::empty())
-            .unwrap()
+        let entry = entries
+            .iter()
+            .filter(|val| val.contains_route(path))
+            .last();
+
+        // If route is found and cors config is available create OK response
+        if let (Some(_), Some(global_cors_config)) = (entry, global_cors_config) {
+            let mut response = Response::builder()
+                .status(StatusCode::OK)
+                .body(Body::empty())
+                .unwrap();
+
+            // @TODO: Duplicated code, fix
+            let mut headers = response.headers_mut();
+            headers.insert("Access-Control-Allow-Origin", HeaderValue::from_str(&global_cors_config.allowed_origin).unwrap());
+            headers.insert(
+                "Access-Control-Allow-Methods",
+                HeaderValue::from_str(
+                    &global_cors_config.allowed_methods
+                        .iter()
+                        .map(|method| method.into())
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+
+                ).unwrap()
+            );
+            headers.insert("Access-Control-Allow-Headers", HeaderValue::from_str(&global_cors_config.allowed_headers.join(", ")).unwrap());
+
+            return response;
+        } else {
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .unwrap()
+        }
+    };
+
+    // Make sure to free up read lock
+    drop(entries);
+
+    let mut response: Response<Body> = client.request(req).await.unwrap();
+
+    if let Some(global_cors_config) = global_cors_config {
+        let mut headers = response.headers_mut();
+        headers.insert("Access-Control-Allow-Origin", HeaderValue::from_str(&global_cors_config.allowed_origin).unwrap());
+        headers.insert(
+            "Access-Control-Allow-Methods",
+            HeaderValue::from_str(
+                &global_cors_config.allowed_methods
+                    .iter()
+                    .map(|method| method.into())
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+
+            ).unwrap()
+        );
+        headers.insert("Access-Control-Allow-Headers", HeaderValue::from_str(&global_cors_config.allowed_headers.join(", ")).unwrap());
     }
+
+    response
 }

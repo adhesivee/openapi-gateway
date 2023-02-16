@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use crate::config::{Config, OpenApiConfig};
 use crate::gateway::openapi::{ContentType, parse_openapi, ParseError};
 use crate::gateway::GatewayEntry;
-use crate::web::{simple_get, new_https_client, serve_with_config, HttpsClient, HttpError};
+use crate::web::{simple_get, serve_with_config, HttpClient, HttpError};
 use chrono::Utc;
 use cron_parser::parse;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| Config::parse_from_env().unwrap());
     let reload_cron = config.reload_cron.clone();
 
-    let client = new_https_client();
+    let client = HttpClient::new();
 
     let mut entries = vec![];
     for config in config.openapi_urls.into_iter() {
@@ -55,12 +55,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let entries = Arc::new(RwLock::from(entries));
     spawn_reload_cron(reload_cron, Arc::clone(&entries)).await;
 
-    Ok(serve_with_config(client, entries).await)
+    Ok(serve_with_config(client, entries, config.global_cors.clone()).await)
 }
 
 async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayEntry>>>) {
     tokio::spawn(async move {
-        let client = new_https_client();
+        let client = HttpClient::new();
 
         loop {
             if let Ok(next) = parse(&reload_cron, &Utc::now()) {
@@ -100,11 +100,12 @@ async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayE
     });
 }
 
-async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> Result<GatewayEntry, FetchError> {
+async fn fetch_entry(client: &HttpClient, config: &OpenApiConfig) -> Result<GatewayEntry, FetchError> {
+    tracing::info!("Fetching: {}", &config.uri());
     let response = simple_get(&client, &config.uri()).await?;
-
+    tracing::info!("Success fetching: {}", &config.uri());
     let content_type = response.0.get("content-type")
-        .unwrap_or(&HeaderValue::from_str("application/json").unwrap())
+        .unwrap_or(&HeaderValue::from_str("").unwrap())
         .to_str()
         .unwrap()
         .to_lowercase();
@@ -122,13 +123,23 @@ async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> Result<Gat
         }
     };
 
-    Ok(
-        parse_openapi(
-            content_type,
-            config.clone(),
-            &response.1,
-        )?
-    )
+    tracing::info!("Parse as: {:#?}", content_type);
+
+    let parsed = parse_openapi(
+        content_type,
+        config.clone(),
+        &response.1,
+    );
+
+    match parsed {
+        Ok(parsed) => {
+            Ok(parsed)
+        }
+        Err(err) => {
+            tracing::error!("{:?}", err);
+            Err(FetchError::ParseError(err))
+        }
+    }
 }
 
 #[derive(Error, Debug)]

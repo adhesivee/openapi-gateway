@@ -23,13 +23,20 @@ pub struct Route {
 }
 
 impl GatewayEntry {
-    pub fn contains_route(&self, path: &str, method: &str) -> bool {
+    pub fn contains_route_and_method(&self, path: &str, method: &str) -> bool {
         self.routes
             .iter()
             .find(|route| {
                 route.uri_regex.is_match(path)
                     && route.method.to_lowercase() == method.to_lowercase()
             })
+            .is_some()
+    }
+
+    pub fn contains_route(&self, path: &str) -> bool {
+        self.routes
+            .iter()
+            .find(|route| route.uri_regex.is_match(path))
             .is_some()
     }
 }
@@ -55,7 +62,7 @@ mod tests {
             ]
         );
 
-        assert!(!entry.contains_route("/test", "get"))
+        assert!(!entry.contains_route_and_method("/test", "get"))
     }
 
     #[test]
@@ -68,7 +75,7 @@ mod tests {
             ]
         );
 
-        assert!(entry.contains_route("/test", "get"))
+        assert!(entry.contains_route_and_method("/test", "get"))
     }
 
     fn entry_with_route(routes: Vec<Route>) -> GatewayEntry {
