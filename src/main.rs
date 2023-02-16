@@ -30,7 +30,8 @@ async fn main() {
     tracing::subscriber::set_global_default(collector)
         .unwrap();
 
-    let config = Config::parse_from_file(CONFIG_FILE).unwrap();
+
+    let config = Config::parse_from_file(&format!("{}/{CONFIG_FILE}", std::env::current_dir().unwrap().to_str().unwrap())).unwrap();
     let reload_cron = config.reload_cron.clone();
 
     let client = new_https_client();
