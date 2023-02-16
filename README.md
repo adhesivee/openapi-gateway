@@ -9,7 +9,7 @@ This project simplifies orchestration of services that work with OpenAPI.
 ## Config
 
 ```toml
-# openapi-gateway.config.toml
+# openapi-gateway-config.toml
 
 # Refresh every minute
 reload_cron = "* * * * *"
