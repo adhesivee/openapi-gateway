@@ -40,7 +40,7 @@ pub async fn serve_with_config(client: HttpsClient, entries: RwGatewayEntries) {
         .layer(AddExtensionLayer::new(entries));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    println!("gateway proxy listening on {}", addr);
+    tracing::info!("gateway proxy listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
