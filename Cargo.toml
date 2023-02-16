@@ -17,3 +17,4 @@ serde_json = "1"
 toml = "0.5"
 thiserror = "1"
 hyper-rustls = { version = "0.23", features = ["http1", "webpki-roots"] }
+base64 = "0.13"

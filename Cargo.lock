@@ -449,6 +449,7 @@ name = "openapi-gateway"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64",
  "hyper",
  "hyper-rustls",
  "serde",

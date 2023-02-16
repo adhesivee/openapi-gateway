@@ -27,7 +27,7 @@ pub fn build_from_json(config: OpenApiConfig, buffer: &[u8]) -> OpenApiEntry {
         .flatten()
         .collect();
 
-    OpenApiEntry { config, routes }
+    OpenApiEntry { config, openapi_file: buffer.to_vec(), routes }
 }
 
 fn collect_routes(json: &Value, server_prefix: &str) -> Vec<Route> {

@@ -6,6 +6,7 @@ use axum::http::Uri;
 #[derive(Debug)]
 pub struct OpenApiEntry {
     pub config: OpenApiConfig,
+    pub openapi_file: Vec<u8>,
     pub routes: Vec<Route>,
 }
 

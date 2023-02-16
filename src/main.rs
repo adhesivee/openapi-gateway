@@ -20,6 +20,7 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::sync::Arc;
 use std::{convert::TryFrom, net::SocketAddr};
+use axum::extract::Path;
 use tower::util::AndThen;
 use tower::{ServiceBuilder, ServiceExt};
 
@@ -53,6 +54,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/docs/swagger-config.json", get(swagger_conf_handler))
+        .route("/docs/defs/:def", get(swagger_def_handler))
         .fallback(any(handler))
         .layer(AddExtensionLayer::new(client))
         .layer(AddExtensionLayer::new(Arc::new(entries)));
@@ -65,6 +67,29 @@ async fn main() {
         .unwrap();
 }
 
+async fn swagger_def_handler(
+    Extension(entries): Extension<Arc<Vec<OpenApiEntry>>>,
+    Path(def): Path<String>,
+) -> Response<Body> {
+    let entry = entries
+        .iter()
+        .filter(|entry| base64::encode(entry.config.name.clone()) == def)
+        .last();
+
+    if let Some(entry) = entry {
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(CONTENT_TYPE, "application/json")
+            .body(Body::from(entry.openapi_file.clone()))
+            .unwrap()
+    } else {
+        Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::empty())
+            .unwrap()
+    }
+}
+
 async fn swagger_conf_handler(
     Extension(entries): Extension<Arc<Vec<OpenApiEntry>>>,
 ) -> (StatusCode, Json<SwaggerUiConfig>) {
@@ -75,7 +100,7 @@ async fn swagger_conf_handler(
             .iter()
             .map(|entry| Url {
                 name: entry.config.name.clone(),
-                url: entry.config.url.clone(),
+                url: format!("/docs/defs/{}", base64::encode(entry.config.name.clone())),
             })
             .collect(),
     };
