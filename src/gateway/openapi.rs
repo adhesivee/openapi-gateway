@@ -81,7 +81,7 @@ fn regex_from_route(url: &str, parameters: &Vec<Parameter>) -> Regex {
         .iter()
         .filter(|param| param.in_type == "path")
         .fold(escape(url), |pattern, param| {
-            pattern.replace(&format!("\\{{{}\\}}", param.name), ".*")
+            pattern.replace(&format!("\\{{{}\\}}", param.name), "[^/]*")
         });
 
     Regex::from_str(&format!("^{}$", &pattern)).unwrap()
@@ -105,7 +105,7 @@ mod tests {
         );
 
         eprintln!("^{}$", regex.as_str());
-        assert_eq!(regex.as_str(), "^/v1/users/.*$");
+        assert_eq!(regex.as_str(), "^/v1/users/[^/]*$");
     }
 
     #[test]
@@ -121,5 +121,20 @@ mod tests {
         );
 
         assert!(regex.is_match("/v1/users/123"));
+    }
+
+    #[test]
+    fn test_regex_for_validation_with_suffix() {
+        let url = "/v1/users/{user_id}-suffix/subroute";
+
+        let regex = regex_from_route(
+            url,
+            &vec![Parameter {
+                name: "user_id".to_string(),
+                in_type: "path".to_string(),
+            }],
+        );
+
+        assert!(regex.is_match("/v1/users/123-suffix/subroute"));
     }
 }
