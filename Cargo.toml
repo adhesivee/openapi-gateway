@@ -11,7 +11,8 @@ repository = "https://github.com/adhesivee/openapi-gateway"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.4"
+axum = { version = "0.6", features = [] }
+axum-macros = { version = "0.3", features = [] }
 tokio = { version = "1.0", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }
 tower = { version = "0.4", features = ["make"] }
@@ -19,7 +20,7 @@ tracing = "0.1"
 tracing-subscriber = { version="0.3", features = ["env-filter", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 toml = "0.5"
 thiserror = "1"
 hyper-rustls = { version = "0.23", features = ["http1", "webpki-roots"] }

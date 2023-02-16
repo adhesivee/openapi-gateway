@@ -2,13 +2,13 @@ use crate::ui::{SwaggerUiConfig, Url};
 use crate::web::HttpsClient;
 use crate::RwGatewayEntries;
 use axum::body::Body;
-use axum::extract::{Extension, Path};
+use axum::extract::{State, Path};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderValue, Method, Request, Response, StatusCode, Uri};
 use axum::Json;
 
 pub async fn swagger_def_handler(
-    Extension(entries): Extension<RwGatewayEntries>,
+    State(entries): State<RwGatewayEntries>,
     Path(def): Path<String>,
 ) -> Response<Body> {
     let entries = entries.read().await;
@@ -33,7 +33,7 @@ pub async fn swagger_def_handler(
 }
 
 pub async fn swagger_conf_handler(
-    Extension(entries): Extension<RwGatewayEntries>,
+    State(entries): State<RwGatewayEntries>,
 ) -> (StatusCode, Json<SwaggerUiConfig>) {
     let entries = entries.read().await;
     let config = SwaggerUiConfig {
@@ -50,8 +50,8 @@ pub async fn swagger_conf_handler(
 }
 
 pub async fn gateway_handler(
-    Extension(entries): Extension<RwGatewayEntries>,
-    Extension(client): Extension<HttpsClient>,
+    State(entries): State<RwGatewayEntries>,
+    State(client): State<HttpsClient>,
     mut req: Request<Body>,
 ) -> Response<Body> {
     let entries = entries.read().await;

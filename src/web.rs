@@ -7,13 +7,15 @@ use crate::RwGatewayEntries;
 use axum::body::{Body, Bytes, StreamBody};
 use axum::http::{HeaderMap, Request, Uri};
 use axum::routing::{any, get};
-use axum::{AddExtensionLayer, Router};
+use axum::Router;
 use hyper::client::HttpConnector;
 use hyper_rustls::HttpsConnector;
 use std::net::SocketAddr;
 use axum::response::{IntoResponse, Response};
 use tokio::io::AsyncReadExt;
 use tokio::time::{Duration, sleep};
+use std::sync::Arc;
+use axum_macros::FromRef;
 
 pub type HttpsClient = hyper::client::Client<HttpsConnector<HttpConnector>, Body>;
 
@@ -50,13 +52,18 @@ pub enum HttpError {
     Error(#[from] hyper::Error)
 }
 
+#[derive(Clone, FromRef)]
+struct AppState {
+    client: HttpsClient,
+    entries: RwGatewayEntries
+}
 pub async fn serve_with_config(client: HttpsClient, entries: RwGatewayEntries) {
     let app = Router::new()
         .route("/docs/swagger-config.json", get(swagger_conf_handler))
         .route("/docs/defs/:def", get(swagger_def_handler))
-        .fallback(any(gateway_handler))
-        .layer(AddExtensionLayer::new(client))
-        .layer(AddExtensionLayer::new(entries));
+        .fallback(gateway_handler)
+        .with_state(AppState { client, entries })
+        ;
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     tracing::info!("gateway proxy listening on {}", addr);
