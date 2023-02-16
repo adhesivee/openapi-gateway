@@ -3,7 +3,10 @@ mod gateway;
 mod ui;
 
 use crate::config::read_from_file;
+use crate::gateway::openapi::build_from_json;
 use crate::gateway::{OpenApiEntry, Route};
+use crate::ui::{SwaggerUiConfig, Url};
+use axum::http::header::CONTENT_TYPE;
 use axum::http::{Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::{
@@ -15,12 +18,9 @@ use axum::{
 use hyper::{client::HttpConnector, Body};
 use hyper_rustls::HttpsConnector;
 use serde_json::{Map, Value};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::{convert::TryFrom, net::SocketAddr};
-use std::collections::HashMap;
-use axum::http::header::CONTENT_TYPE;
-use crate::gateway::openapi::build_from_json;
-use crate::ui::{SwaggerUiConfig, Url};
 
 type Client = hyper::client::Client<HttpsConnector<HttpConnector>, Body>;
 
@@ -47,7 +47,11 @@ async fn main() {
 
         let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-        entries.push(build_from_json(&url.url.as_str(), url.name.as_str(), &bytes));
+        entries.push(build_from_json(
+            &url.url.as_str(),
+            url.name.as_str(),
+            &bytes,
+        ));
     }
 
     let app = Router::new()
@@ -75,7 +79,6 @@ async fn handler(
     Extension(client): Extension<Client>,
     mut req: Request<Body>,
 ) -> Response<Body> {
-
     let path = req.uri().path();
     let path_query = req
         .uri()
@@ -98,35 +101,29 @@ async fn handler(
         }
 
         println!("Static file {file}");
-        let mut builder =  Response::builder()
-            .status(StatusCode::OK);
-
+        let mut builder = Response::builder().status(StatusCode::OK);
 
         if file.ends_with(".json") {
             builder = builder.header(CONTENT_TYPE, "application/json");
         }
 
-
+        // @TODO: These files should be proxied
         let bytes = if file == &"swagger-config.json" {
             let config = SwaggerUiConfig {
-                urls: entries.iter()
-                    .map(|entry| {
-                        Url {
-                            name: entry.name.clone(),
-                            url: entry.uri.to_string()
-                        }
+                urls: entries
+                    .iter()
+                    .map(|entry| Url {
+                        name: entry.name.clone(),
+                        url: entry.uri.to_string(),
                     })
-                    .collect()
+                    .collect(),
             };
 
             serde_json::to_vec(&config).unwrap()
         } else {
             std::fs::read(format!("swagger-ui/{}", file)).unwrap()
         };
-        return builder.body(
-                Body::from(bytes)
-            )
-            .unwrap();
+        return builder.body(Body::from(bytes)).unwrap();
     }
 
     println!("{path_query}");
