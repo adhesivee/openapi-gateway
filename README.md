@@ -1,8 +1,10 @@
 # OpenAPI Gateway
 
-API Gateway based on OpenAPI routes.
+API Gateway that build its routes via [OpenAPI specification](https://swagger.io/specification/).
 
-Supports hot reloading of OpenAPI routes.
+Hot reloading of OpenAPI files is supported with `reload_cron` (see Config).
+
+This project simplifies orchestration of services that work with OpenAPI.
 
 ## Config
 
@@ -44,3 +46,4 @@ Open `http://127.0.0.1:8080/docs/` to find the configured routes.
 - [ ] Metrics
 - [ ] Docker
 - [ ] Tags based inclusion/exclusion
+- [ ] OpenAPI (Swagger) v2 support
