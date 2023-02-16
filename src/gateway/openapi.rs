@@ -1,25 +1,37 @@
 use crate::config::OpenApiConfig;
-use crate::gateway::{GatewayEntry, Route};
+use crate::gateway::{GatewayEntry, OpenApiFile, Route};
 use crate::openapi::{OpenApiV3, Parameter, Server};
 use regex::{escape, Regex};
 use std::str::FromStr;
 
-pub fn parse_from_json(config: OpenApiConfig, buffer: &[u8]) -> GatewayEntry {
-    let mut json: OpenApiV3 = serde_json::from_slice(buffer).unwrap();
+pub enum ContentType {
+    JSON,
+    YAML
+}
 
-    if json.servers.is_empty() {
-        json.servers.push(Server {
+pub fn parse_openapi(
+    content_type: ContentType,
+    config: OpenApiConfig,
+    buffer: &[u8]
+) -> GatewayEntry {
+    let (content_type, mut document): (&'static str, OpenApiV3) = match content_type {
+        ContentType::JSON => { ("application/json", serde_json::from_slice(buffer).unwrap()) }
+        ContentType::YAML => { ("application/yaml", serde_yaml::from_slice(buffer).unwrap()) }
+    };
+
+    if document.servers.is_empty() {
+        document.servers.push(Server {
             url: "/".to_string(),
         })
     }
 
-    let routes: Vec<_> = json
+    let routes: Vec<_> = document
         .servers
         .iter()
         .map(|server| {
             let server_prefix = server.url.trim_end_matches("/");
 
-            let routes = collect_routes(&json, server_prefix);
+            let routes = collect_routes(&document, server_prefix);
 
             routes.iter()
                 .for_each(|route| {
@@ -33,7 +45,11 @@ pub fn parse_from_json(config: OpenApiConfig, buffer: &[u8]) -> GatewayEntry {
 
     GatewayEntry {
         config,
-        openapi_file: buffer.to_vec(),
+        openapi_file: Some(OpenApiFile {
+            content_type: content_type.to_string(),
+            contents: buffer.to_vec()
+
+        }),
         routes,
     }
 }

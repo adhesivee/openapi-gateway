@@ -21,8 +21,8 @@ pub async fn swagger_def_handler(
     if let Some(entry) = entry {
         Response::builder()
             .status(StatusCode::OK)
-            .header(CONTENT_TYPE, "application/json")
-            .body(Body::from(entry.openapi_file.clone()))
+            .header(CONTENT_TYPE, &entry.openapi_file.as_ref().unwrap().content_type)
+            .body(Body::from(entry.openapi_file.as_ref().unwrap().contents.clone()))
             .unwrap()
     } else {
         Response::builder()

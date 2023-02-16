@@ -4,13 +4,14 @@ mod openapi;
 mod ui;
 mod web;
 
-use crate::config::Config;
-use crate::gateway::openapi::parse_from_json;
+use crate::config::{Config, OpenApiConfig};
+use crate::gateway::openapi::{ContentType, parse_openapi};
 use crate::gateway::GatewayEntry;
-use crate::web::{get_bytes, new_https_client, serve_with_config};
+use crate::web::{simple_get, new_https_client, serve_with_config, HttpsClient};
 use chrono::Utc;
 use cron_parser::parse;
 use std::sync::Arc;
+use axum::http::{HeaderValue, Uri};
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
 use tracing::Level;
@@ -36,9 +37,7 @@ async fn main() {
 
     let mut entries = vec![];
     for config in config.openapi_urls.into_iter() {
-        let bytes = get_bytes(&client, &config.uri()).await;
-
-        entries.push(parse_from_json(config, &bytes));
+        entries.push(fetch_entry(&client,  &config).await);
     }
 
     let entries = Arc::new(RwLock::from(entries));
@@ -49,6 +48,8 @@ async fn main() {
 
 async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayEntry>>>) {
     tokio::spawn(async move {
+        let client = new_https_client();
+
         loop {
             if let Ok(next) = parse(&reload_cron, &Utc::now()) {
                 let diff = next - Utc::now();
@@ -60,9 +61,12 @@ async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayE
                 let mut reloaded_entries = {
                     let mut entries = entries.read().await;
 
-                    entries.iter()
-                        .map(|entry| parse_from_json(entry.config.clone(), &entry.openapi_file.to_vec()))
-                        .collect::<Vec<_>>()
+                    let mut reload_entries = vec![];
+                    for entry in entries.iter() {
+                        reload_entries.push(fetch_entry(&client,  &entry.config).await);
+                    }
+
+                    reload_entries
                 };
 
                 {
@@ -78,4 +82,26 @@ async fn spawn_reload_cron(reload_cron: String, entries: Arc<RwLock<Vec<GatewayE
             }
         }
     });
+}
+
+async fn fetch_entry(client: &HttpsClient, config: &OpenApiConfig) -> GatewayEntry {
+    let response = simple_get(&client, &config.uri()).await;
+
+    let content_type = response.0.get("content-type")
+        .unwrap_or(&HeaderValue::from_str("application/json").unwrap())
+        .to_str()
+        .unwrap()
+        .to_lowercase();
+
+    let content_type = if content_type == "application/yaml" {
+        ContentType::YAML
+    } else {
+        ContentType::JSON
+    };
+
+    parse_openapi(
+        content_type,
+        config.clone(),
+        &response.1
+    )
 }
