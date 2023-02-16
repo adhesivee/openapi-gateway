@@ -86,8 +86,7 @@ pub async fn gateway_handler(
         let exe_file = std::env::current_exe();
         let exe_folder = exe_file
             .as_ref()
-            .map(|val| val.as_path())
-            .map(|val| val.parent().unwrap());
+            .map(|val| val.as_path());
 
 
         let default = format!("swagger-ui/{}", file);
@@ -95,7 +94,7 @@ pub async fn gateway_handler(
             let swagger_ui_folder = path.join("swagger-ui");
 
             if swagger_ui_folder.exists() {
-                path.join(file)
+                swagger_ui_folder.join(file)
                     .to_str()
                     .unwrap()
                     .to_string()
@@ -106,6 +105,7 @@ pub async fn gateway_handler(
             default
         };
 
+        tracing::info!("Loading from disk: {file_path}");
         let bytes = std::fs::read(file_path).unwrap();
         return builder.body(Body::from(bytes)).unwrap();
     }
