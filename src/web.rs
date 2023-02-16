@@ -12,9 +12,6 @@ use hyper::client::HttpConnector;
 use hyper_rustls::HttpsConnector;
 use std::net::SocketAddr;
 use axum::response::{IntoResponse, Response};
-use futures::channel::mpsc::channel;
-use futures::channel::mpsc::{Receiver, Sender};
-use futures::SinkExt;
 use tokio::io::AsyncReadExt;
 use tokio::time::{Duration, sleep};
 
@@ -55,7 +52,6 @@ pub enum HttpError {
 
 pub async fn serve_with_config(client: HttpsClient, entries: RwGatewayEntries) {
     let app = Router::new()
-        .route("/stream", get(stream_test))
         .route("/docs/swagger-config.json", get(swagger_conf_handler))
         .route("/docs/defs/:def", get(swagger_def_handler))
         .fallback(any(gateway_handler))
