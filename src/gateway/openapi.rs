@@ -1,8 +1,8 @@
+use crate::config::OpenApiConfig;
 use crate::gateway::{OpenApiEntry, Route};
 use axum::http::Uri;
 use serde_json::{Map, Value};
 use std::slice::Iter;
-use crate::config::OpenApiConfig;
 
 pub fn build_from_json(config: OpenApiConfig, buffer: &[u8]) -> OpenApiEntry {
     let json: Value = serde_json::from_slice(buffer).unwrap();
@@ -27,10 +27,7 @@ pub fn build_from_json(config: OpenApiConfig, buffer: &[u8]) -> OpenApiEntry {
         .flatten()
         .collect();
 
-    OpenApiEntry {
-        config,
-        routes,
-    }
+    OpenApiEntry { config, routes }
 }
 
 fn collect_routes(json: &Value, server_prefix: &str) -> Vec<Route> {

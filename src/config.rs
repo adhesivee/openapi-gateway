@@ -1,6 +1,6 @@
+use axum::http::Uri;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use axum::http::Uri;
 use toml::de::Error;
 
 #[derive(Deserialize, Debug)]
