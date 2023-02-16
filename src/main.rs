@@ -39,17 +39,16 @@ async fn main() {
     let config = read_from_file(CONFIG_FILE).unwrap();
 
     let mut entries = vec![];
-    for url in config.openapi_urls.iter() {
+    for config in config.openapi_urls.into_iter() {
         let response = client
-            .request(Request::get(&url.url).body(Body::empty()).unwrap())
+            .request(Request::get(&config.uri()).body(Body::empty()).unwrap())
             .await
             .unwrap();
 
         let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
         entries.push(build_from_json(
-            &url.url.as_str(),
-            url.name.as_str(),
+            config,
             &bytes,
         ));
     }
@@ -113,8 +112,8 @@ async fn handler(
                 urls: entries
                     .iter()
                     .map(|entry| Url {
-                        name: entry.name.clone(),
-                        url: entry.uri.to_string(),
+                        name: entry.config.name.clone(),
+                        url: entry.config.url.clone(),
                     })
                     .collect(),
             };
@@ -139,7 +138,7 @@ async fn handler(
 
     if let Some(entry) = entry {
         println!("Entry found");
-        let entry_uri: &Uri = &entry.uri;
+        let entry_uri: &Uri = &entry.config.uri();
 
         let uri = format!(
             "{}://{}{}",
