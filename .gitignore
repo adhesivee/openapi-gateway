@@ -1,3 +1,4 @@
 /target
 .idea
 openapi-gateway.iml
+openapi-gateway-config.toml
