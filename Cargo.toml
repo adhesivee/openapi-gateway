@@ -1,6 +1,6 @@
 [package]
 name = "openapi-gateway"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "API Gateway based on OpenAPI routes"
 license-file = "LICENSE"
