@@ -1,7 +1,7 @@
 use crate::config::OpenApiConfig;
 use crate::gateway::{GatewayEntry, Route};
 use crate::openapi::{OpenApiV3, Parameter, Server};
-use regex::{escape, Error, Regex};
+use regex::{escape, Regex};
 use std::str::FromStr;
 
 pub fn parse_from_json(config: OpenApiConfig, buffer: &[u8]) -> GatewayEntry {
