@@ -37,6 +37,7 @@ WORKDIR /openapi-gateway
 # Copy our build
 COPY --from=builder /openapi-gateway/target/x86_64-unknown-linux-musl/release/openapi-gateway ./
 COPY swagger-ui ./swagger-ui
+COPY redoc ./redoc
 # Use an unprivileged user.
 USER openapi-gateway:openapi-gateway
 

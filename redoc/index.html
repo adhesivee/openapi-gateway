@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Redoc</title>
+    <!-- needed for adaptive design -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700"
+      rel="stylesheet"
+    />
+
+    <!--
+    Redoc doesn't change outer page styles
+    -->
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+	  
+	  #api-selector {
+		position: absolute;
+		z-index: 1000;
+		left: auto;
+		right: 5px;
+		top: 5px;
+	  }
+    </style>
+  </head>
+  <body>
+	<select id="api-selector" type="select" onchange="selectUrl()"></select>
+
+    <redoc></redoc>
+
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+	<script>
+        const selector = document.getElementById("api-selector");
+
+        function selectUrl() {
+			Redoc.init(selector.value);
+
+            if (history.pushState) {
+              const definitionUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?definition=' + selector.selectedOptions[0].text;
+              window.history.pushState({path:definitionUrl},'',definitionUrl);
+            }
+		}
+
+        fetch("/docs/swagger-config.json")
+            .then((response) => response.json())
+            .then((json) => {
+                const params = new URLSearchParams(window.location.search)
+
+                json.urls
+                    .map((url) => {
+                        const option = document.createElement("option");
+                        option.setAttribute("value", url.url);
+                        option.innerText = url.name;
+
+                        if (params.has('definition') && params.get('definition') === url.name) {
+                          option.selected = true;
+                        }
+
+                        return option;
+                    })
+                    .forEach((option) => selector.append(option));
+
+                const hash = window.location.hash;
+                selectUrl();
+                window.location.hash = hash;
+            })
+	</script>
+  </body>
+</html>

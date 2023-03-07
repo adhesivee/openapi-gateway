@@ -5,8 +5,8 @@ use std::error::Error;
 use crate::web::handler::{gateway_handler, swagger_conf_handler, swagger_def_handler};
 use crate::RwGatewayEntries;
 use axum::body::{Body, Bytes, StreamBody};
-use axum::http::{HeaderMap, Request, Uri};
-use axum::routing::{any, get};
+use axum::http::{HeaderMap, Request, StatusCode, Uri};
+use axum::routing::{any, get, get_service};
 use axum::Router;
 use hyper::client::HttpConnector;
 use hyper_rustls::HttpsConnector;
@@ -17,6 +17,8 @@ use tokio::time::{Duration, sleep};
 use std::sync::Arc;
 use axum::http::uri::Scheme;
 use axum_macros::FromRef;
+use tokio::io;
+use tower_http::services::{ServeDir, ServeFile};
 use crate::config::CorsConfig;
 
 type HyperHttpsClient = hyper::client::Client<HttpsConnector<HttpConnector>, Body>;
@@ -112,9 +114,13 @@ pub async fn serve_with_config(
     entries: RwGatewayEntries,
     global_cors_config: Option<CorsConfig>
 ) {
+    let serve_dir = ServeDir::new("redoc").not_found_service(ServeFile::new("redoc/index.html"));
+    let serve_dir = get_service(serve_dir).handle_error(handle_error);
+
     let app = Router::new()
         .route("/docs/swagger-config.json", get(swagger_conf_handler))
         .route("/docs/defs/:def", get(swagger_def_handler))
+        .nest_service("/redoc/", serve_dir)
         .fallback(gateway_handler)
         .with_state(AppState { client, entries, global_cors_config })
         ;
@@ -125,4 +131,8 @@ pub async fn serve_with_config(
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn handle_error(_err: io::Error) -> impl IntoResponse {
+    (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...")
 }
