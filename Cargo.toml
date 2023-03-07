@@ -15,7 +15,8 @@ axum = { version = "0.6", features = [] }
 axum-macros = { version = "0.3", features = [] }
 tokio = { version = "1.0", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }
-tower = { version = "0.4", features = ["make"] }
+tower = { version = "0.4", features = ["make", "util"] }
+tower-http = { version = "0.3.0", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version="0.3", features = ["env-filter", "json"] }
 serde = { version = "1", features = ["derive"] }
